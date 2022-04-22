@@ -2,7 +2,7 @@
 #![cfg_attr(target_os = "none", no_main)]
 
 mod api;
-use api::*;
+pub use api::*;
 
 use num_traits::FromPrimitive;
 
@@ -106,13 +106,20 @@ fn xmain() -> ! {
     let mut susres = susres::Susres::new(None, &xns, api::Opcode::SuspendResume as u32, sr_cid).expect("couldn't create suspend/resume object");
 
     loop {
-        let msg = xous::receive_message(usbtest_sid).unwrap();
+        let mut msg = xous::receive_message(usbtest_sid).unwrap();
         match FromPrimitive::from_usize(msg.body.id()) {
             Some(Opcode::SuspendResume) => xous::msg_scalar_unpack!(msg, token, _, _, _, {
                 usbtest.suspend();
                 susres.suspend_until_resume(token).expect("couldn't execute suspend/resume");
                 usbtest.resume();
             }),
+            Some(Opcode::Test1) => {
+                let body = msg.body.memory_message_mut().expect("incorrect message type received");
+                let buf = body.buf.as_slice_mut::<u8>();
+                for i in buf.iter_mut() {
+                    *i = *i + 1;
+                }
+            },
             Some(Opcode::Quit) => {
                 log::warn!("Quit received, goodbye world!");
                 break;

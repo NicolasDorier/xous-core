@@ -95,6 +95,7 @@ members = [
   "services/ffi-test",
   "services/tts",
   "services/usb-test",
+  "services/test-stub3",
   "kernel",
   "loader",
 ]
