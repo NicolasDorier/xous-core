@@ -59,7 +59,7 @@ fn main() -> ! {
                 for (&s, d) in bigbuf.iter().zip(request.raw.iter_mut()) {
                     *d = s;
                 }
-                log::info!("buf: {:?}", &request.raw[..32]);
+                log::info!("buf: {:?}", &request.raw[..]);
                 let buf = unsafe {
                     xous::MemoryRange::new(
                         &mut request as *mut RawData as usize,
@@ -81,11 +81,11 @@ fn main() -> ! {
                     Ok(xous::Result::MemoryReturned(_offset, _valid)) => {
                         // contrived example just copies whatever comes back from the server
                         let response = buf.as_slice::<u8>();
-                        log::info!("buf_ret: {:?}", &response[..32]);
+                        log::info!("buf_ret: {:?}", &response[..]);
                     }
                     _ => log::warn!("unexpected response"),
                 }
-                log::info!("buf2: {:?}", &bigbuf2[..32]);
+                log::info!("buf2: {:?}", &bigbuf2[..]);
                 log::info!("small message 3");
             }),
             None => {
