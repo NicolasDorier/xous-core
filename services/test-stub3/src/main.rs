@@ -41,6 +41,7 @@ fn main() -> ! {
             let tt = ticktimer_server::Ticktimer::new().unwrap();
             loop {
                 tt.sleep_ms(4000).unwrap();
+                log::info!("test-stub3 pinger");
                 xous::send_message(cid, xous::Message::new_scalar(
                     Opcode::DoTest.to_usize().unwrap(),
                     0, 0, 0, 0)).unwrap();

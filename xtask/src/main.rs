@@ -299,13 +299,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             extra_packages.as_slice(), Some(&["--no-default-features", "--features", "renode-bypass", "--features", "debug-print"]))?;
         }
         Some("msgtest") => {
-            let mut args = env::args();
-            args.nth(1);
             let mut pkgs = base_pkgs.to_vec();
             pkgs.push("usb-test");
             pkgs.push("test-stub3");
-            let args: Vec<String> = args.collect();
             run(false, &pkgs, None, false)?
+        }
+        Some("msgtestrenode") => {
+            let mut pkgs = base_pkgs.to_vec();
+            pkgs.push("usb-test");
+            pkgs.push("test-stub3");
+            renode_image(false,
+                &pkgs,
+                &[],
+                None,
+                Some(&["--features", "renode-bypass"])
+            )?
         }
         Some("libstd-test") => {
             let mut args = env::args();
