@@ -3,8 +3,11 @@
 
 mod api;
 pub use api::*;
+use xous::{Message, CID, SID, msg_blocking_scalar_unpack, send_message};
+use xous_ipc::Buffer;
+use std::thread;
 
-use num_traits::FromPrimitive;
+use num_traits::*;
 
 #[cfg(any(target_os = "none", target_os = "xous"))]
 mod implementation {
@@ -72,6 +75,37 @@ mod implementation {
     }
 }
 
+#[derive(num_derive::FromPrimitive, num_derive::ToPrimitive, Debug)]
+pub(crate) enum ConnectionManagerOpcode {
+    SubscribeWifiStats,
+    Quit,
+}
+
+pub(crate) fn connection_manager(sid: xous::SID) {
+    loop {
+        let msg = xous::receive_message(sid).unwrap();
+        match FromPrimitive::from_usize(msg.body.id()) {
+            Some(ConnectionManagerOpcode::SubscribeWifiStats) => {
+                log::info!("incoming second hand message");
+                let buffer = unsafe {
+                    Buffer::from_memory_message(msg.body.memory_message().unwrap())
+                };
+                let sub = buffer.to_original::<WifiStateSubscription, _>().unwrap();
+                log::info!("got {:?}, {}", sub.sid, sub.opcode);
+            },
+            Some(ConnectionManagerOpcode::Quit) => msg_blocking_scalar_unpack!(msg, _, _, _, _, {
+                xous::return_scalar(msg.sender, 0).unwrap();
+                log::warn!("exiting connection manager");
+                break;
+            }),
+            None => {
+                log::error!("couldn't convert opcode: {:?}", msg);
+            }
+        }
+    }
+    xous::destroy_server(sid).unwrap();
+}
+
 
 #[xous::xous_main]
 fn xmain() -> ! {
@@ -88,6 +122,14 @@ fn xmain() -> ! {
     let mut usbtest = UsbTest::new();
 
     log::trace!("ready to accept requests");
+
+    let cm_sid = xous::create_server().expect("couldn't create connection manager server");
+    let cm_cid = xous::connect(cm_sid).unwrap();
+    thread::spawn({
+        move || {
+            connection_manager(cm_sid);
+        }
+    });
 
     std::thread::spawn({
         move || {
@@ -120,6 +162,22 @@ fn xmain() -> ! {
                     *i = *i + 1;
                 }
             },
+            Some(Opcode::SubscribeWifiStats) => {
+                log::info!("first level rx");
+                let buffer =
+                    unsafe { Buffer::from_memory_message(msg.body.memory_message().unwrap()) };
+                // have to transform it through the local memory space because you can't re-lend pages
+                let sub = buffer.to_original::<WifiStateSubscription, _>().unwrap();
+                let buf = Buffer::into_buf(sub).expect("couldn't convert to memory message");
+                log::info!("regift!");
+                buf.send(
+                    cm_cid,
+                    ConnectionManagerOpcode::SubscribeWifiStats
+                        .to_u32()
+                        .unwrap(),
+                )
+                .expect("couldn't forward subscription request");
+            }
             Some(Opcode::Quit) => {
                 log::warn!("Quit received, goodbye world!");
                 break;

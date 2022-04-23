@@ -2,10 +2,12 @@
 #![cfg_attr(target_os = "none", no_main)]
 
 use num_traits::*;
+use xous_ipc::Buffer;
 
 #[derive(num_derive::FromPrimitive, num_derive::ToPrimitive, Debug)]
 pub(crate) enum Opcode {
     DoTest,
+    DoTest2,
 }
 
 #[derive(Debug)]
@@ -43,7 +45,7 @@ fn main() -> ! {
                 tt.sleep_ms(4000).unwrap();
                 log::info!("test-stub3 pinger");
                 xous::send_message(cid, xous::Message::new_scalar(
-                    Opcode::DoTest.to_usize().unwrap(),
+                    Opcode::DoTest2.to_usize().unwrap(),
                     0, 0, 0, 0)).unwrap();
             }
         }
@@ -54,6 +56,15 @@ fn main() -> ! {
     loop {
         let msg = xous::receive_message(sid).unwrap();
         match FromPrimitive::from_usize(msg.body.id()) {
+            Some(Opcode::DoTest2) => xous::msg_scalar_unpack!(msg, _, _, _, _, {
+                log::info!("initial send");
+                let sub = usb_test::WifiStateSubscription {
+                    sid: [42, 0, 42, 0],
+                    opcode: 100,
+                };
+                let buf = Buffer::into_buf(sub).or(Err(xous::Error::InternalError)).unwrap();
+                buf.send(test_conn, usb_test::Opcode::SubscribeWifiStats.to_u32().unwrap()).or(Err(xous::Error::InternalError)).unwrap();
+            }),
             Some(Opcode::DoTest) => xous::msg_scalar_unpack!(msg, _, _, _, _, {
 
                 let mut request = RawData { raw: [0u8; 4096] };
