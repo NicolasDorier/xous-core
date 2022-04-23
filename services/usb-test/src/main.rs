@@ -167,10 +167,10 @@ fn xmain() -> ! {
                 let buffer =
                     unsafe { Buffer::from_memory_message(msg.body.memory_message().unwrap()) };
                 // have to transform it through the local memory space because you can't re-lend pages
-                let sub = buffer.to_original::<WifiStateSubscription, _>().unwrap();
-                let buf = Buffer::into_buf(sub).expect("couldn't convert to memory message");
+                // let sub = buffer.to_original::<WifiStateSubscription, _>().unwrap();
+                // let buf = Buffer::into_buf(sub).expect("couldn't convert to memory message");
                 log::info!("regift!");
-                buf.send(
+                buffer.send(  // <-- note buf -> buffer change
                     cm_cid,
                     ConnectionManagerOpcode::SubscribeWifiStats
                         .to_u32()
