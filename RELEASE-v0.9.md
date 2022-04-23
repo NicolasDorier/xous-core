@@ -143,6 +143,10 @@ for examples of idiomatic ways to write code for Xous.
   - There will be occassions where you will need to insert a paperclip into the reset port on the lower right hand corner to recover from the panic.
   - If you get a panic, please snap a photo of it and drop it in a new issue in the `xous-core` repo, along with a description of what you were doing at the time.
 
+## New in 0.9.9 (currently in development)
+- `modals` text entry has been refactored to allow multi-field text entries with defaults! Thanks to gsora for PR #140.
+- fix issue #141: bug fix in `log-server` where max-length buffers were not being printed + refactor of method to use `send` vs scalars
+
 ## Roadmap to 1.0
 
 The items that are still missing before we can hit a 1.0 release include:
